@@ -37,7 +37,7 @@ public class DebeziumMySqlDialect extends GenericDatabaseDialect {
      */
     public static class Provider extends SubprotocolBasedProvider {
         public Provider() {
-            super(DebeziumMySqlDialect.class.getSimpleName(), "debezium");
+            super(DebeziumMySqlDialect.class.getSimpleName(), "debeziummysql");
         }
 
         @Override
