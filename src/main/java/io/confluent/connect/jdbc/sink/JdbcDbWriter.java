@@ -14,20 +14,19 @@
 
 package io.confluent.connect.jdbc.sink;
 
+import io.confluent.connect.jdbc.dialect.DatabaseDialect;
+import io.confluent.connect.jdbc.util.CachedConnectionProvider;
+import io.confluent.connect.jdbc.util.TableId;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-
-import io.confluent.connect.jdbc.dialect.DatabaseDialect;
-import io.confluent.connect.jdbc.util.CachedConnectionProvider;
-import io.confluent.connect.jdbc.util.TableId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class JdbcDbWriter {
   private static final Logger log = LoggerFactory.getLogger(JdbcDbWriter.class);
@@ -82,7 +81,12 @@ public class JdbcDbWriter {
     //hack code! remove the catalog and schema
     String newTopicName = this.stripOutCatalogAndSchema(topic);
 
-    final String tableName = config.tableNameFormat.replace("${topic}", newTopicName);
+    String tableName = config.tableNameFormat.replace("${topic}", newTopicName);
+    if(this.config.topicTableMapping.size() > 0) {
+      String mapping = this.config.topicTableMapping.stream().filter(m -> m.contains(topic)).findFirst().get();
+      String mappedTableName = mapping.split("->")[1];
+      tableName = mappedTableName;
+    }
     if (tableName.isEmpty()) {
       throw new ConnectException(String.format(
           "Destination table name for topic '%s' is empty using the format string '%s'",
