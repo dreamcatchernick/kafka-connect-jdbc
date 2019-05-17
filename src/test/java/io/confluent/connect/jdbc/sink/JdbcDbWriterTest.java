@@ -299,4 +299,16 @@ public class JdbcDbWriterTest {
     );
   }
 
+  @Test
+  public void stripOutCatalogAndSchemaInTopicName() {
+    Map<String, String> props = new HashMap<>();
+    props.put("connection.url", sqliteHelper.sqliteUri());
+    props.put("auto.create", "true");
+    props.put("auto.evolve", "true");
+    props.put("pk.mode", "record_key");
+    props.put("pk.fields", "id"); // assigned name for the primitive key
+    writer = newWriter(props);
+    TableId tableId = writer.destinationTable("test.nick.customer");
+    assertEquals(tableId.tableName(), "customer");
+  }
 }
