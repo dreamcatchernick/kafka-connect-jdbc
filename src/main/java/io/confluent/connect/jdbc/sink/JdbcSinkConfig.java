@@ -210,6 +210,12 @@ public class JdbcSinkConfig extends AbstractConfig {
   private static final EnumRecommender QUOTE_METHOD_RECOMMENDER =
       EnumRecommender.in(QuoteMethod.values());
 
+
+  public static final String TIMEZONE_OFFSET = "timezone.offset";
+  private static final String TIMEZONE_OFFSET_DISPLAY = "Timezone Offset";
+  public static final String TIMEZONE_OFFSET_DEFAULT = "0";
+  private static final String TIMEZONE_OFFSET_DOC = "Store the timezone offset to correct the debziume datetime issue";
+
   public static final ConfigDef CONFIG_DEF = new ConfigDef()
         // Connection
         .define(
@@ -394,6 +400,17 @@ public class JdbcSinkConfig extends AbstractConfig {
             2,
             ConfigDef.Width.SHORT,
             RETRY_BACKOFF_MS_DISPLAY
+        )
+        .define(
+            TIMEZONE_OFFSET,
+            ConfigDef.Type.INT,
+            TIMEZONE_OFFSET_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            TIMEZONE_OFFSET_DOC,
+            DDL_GROUP,
+              4,
+            ConfigDef.Width.LONG,
+            TIMEZONE_OFFSET_DISPLAY
         );
 
   public final String connectionUrl;
@@ -411,6 +428,7 @@ public class JdbcSinkConfig extends AbstractConfig {
   public final Set<String> fieldsWhitelist;
   public final String dialectName;
   public final TimeZone timeZone;
+  public final int timezoneOffset;
 
   public JdbcSinkConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
@@ -430,6 +448,7 @@ public class JdbcSinkConfig extends AbstractConfig {
     fieldsWhitelist = new HashSet<>(getList(FIELDS_WHITELIST));
     String dbTimeZone = getString(DB_TIMEZONE_CONFIG);
     timeZone = TimeZone.getTimeZone(ZoneId.of(dbTimeZone));
+    timezoneOffset = getInt(TIMEZONE_OFFSET);
   }
 
   private String getPasswordValue(String key) {
