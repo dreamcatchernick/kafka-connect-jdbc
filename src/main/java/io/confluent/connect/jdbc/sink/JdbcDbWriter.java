@@ -83,7 +83,12 @@ public class JdbcDbWriter {
     //hack code! remove the catalog and schema
     String newTopicName = this.stripOutCatalogAndSchema(topic);
 
-    final String tableName = config.tableNameFormat.replace("${topic}", newTopicName);
+    String tableName = config.tableNameFormat.replace("${topic}", newTopicName);
+    if(this.config.topicTableMapping.size() > 0) {
+      String mapping = this.config.topicTableMapping.stream().filter(m -> m.contains(topic)).findFirst().get();
+      String mappedTableName = mapping.split("->")[1];
+      tableName = mappedTableName;
+    }
     if (tableName.isEmpty()) {
       throw new ConnectException(String.format(
           "Destination table name for topic '%s' is empty using the format string '%s'",

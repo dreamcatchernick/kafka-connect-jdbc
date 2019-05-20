@@ -216,6 +216,11 @@ public class JdbcSinkConfig extends AbstractConfig {
   public static final String TIMEZONE_OFFSET_DEFAULT = "0";
   private static final String TIMEZONE_OFFSET_DOC = "Store the timezone offset to correct the debziume datetime issue";
 
+  public static final String TOPIC_TABLE_MAPPING = "topic.table.mapping";
+  private static final String TOPIC_TABLE_MAPPING_DISPLAY = "Topic to table mapping";
+  public static final String TOPIC_TABLE_MAPPING_DEFAULT = "";
+  private static final String TOPIC_TABLE_MAPPING_DOC = "Sink job topic name to table name mapping eg.(sink topic abc to table bcd)";
+
   public static final ConfigDef CONFIG_DEF = new ConfigDef()
         // Connection
         .define(
@@ -411,6 +416,17 @@ public class JdbcSinkConfig extends AbstractConfig {
               4,
             ConfigDef.Width.LONG,
             TIMEZONE_OFFSET_DISPLAY
+        )
+        .define(
+            TOPIC_TABLE_MAPPING,
+            ConfigDef.Type.LIST,
+            TOPIC_TABLE_MAPPING_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            TOPIC_TABLE_MAPPING_DOC,
+            DATAMAPPING_GROUP,
+            4,
+            ConfigDef.Width.LONG,
+            TOPIC_TABLE_MAPPING_DISPLAY
         );
 
   public final String connectionUrl;
@@ -429,6 +445,7 @@ public class JdbcSinkConfig extends AbstractConfig {
   public final String dialectName;
   public final TimeZone timeZone;
   public final int timezoneOffset;
+  public final List<String> topicTableMapping;
 
   public JdbcSinkConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
@@ -449,6 +466,7 @@ public class JdbcSinkConfig extends AbstractConfig {
     String dbTimeZone = getString(DB_TIMEZONE_CONFIG);
     timeZone = TimeZone.getTimeZone(ZoneId.of(dbTimeZone));
     timezoneOffset = getInt(TIMEZONE_OFFSET);
+    topicTableMapping = getList(TOPIC_TABLE_MAPPING);
   }
 
   private String getPasswordValue(String key) {

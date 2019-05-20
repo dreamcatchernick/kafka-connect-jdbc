@@ -311,4 +311,31 @@ public class JdbcDbWriterTest {
     TableId tableId = writer.destinationTable("test.nick.customer");
     assertEquals(tableId.tableName(), "customer");
   }
+
+  @Test
+  public void topicTableMappingTheCorrectTableName() {
+    Map<String, String> props1 = new HashMap<>();
+    props1.put("connection.url", sqliteHelper.sqliteUri());
+    props1.put("auto.create", "true");
+    props1.put("auto.evolve", "true");
+    props1.put("pk.mode", "record_key");
+    props1.put("pk.fields", "id");
+    props1.put("topic.table.mapping", "test.nick.customer->areyouok, test.nick.item->imok");
+    writer = newWriter(props1);
+    TableId tableId1 = writer.destinationTable("test.nick.customer");
+    TableId tableId2 = writer.destinationTable("test.nick.item");
+    assertEquals("areyouok",tableId1.tableName());
+    assertEquals("imok",tableId2.tableName());
+
+
+    Map<String, String> props2 = new HashMap<>();
+    props2.put("connection.url", sqliteHelper.sqliteUri());
+    props2.put("auto.create", "true");
+    props2.put("auto.evolve", "true");
+    props2.put("pk.mode", "record_key");
+    props2.put("pk.fields", "id");
+    writer = newWriter(props2);
+    TableId tableId = writer.destinationTable("test.nick.customer");
+    assertEquals("customer",tableId.tableName());
+  }
 }
