@@ -20,6 +20,11 @@ import org.apache.kafka.connect.data.*;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -215,33 +220,37 @@ public class DebeziumOracleDialect extends GenericDatabaseDialect {
     ) throws SQLException {
         //fix debezium extract data type - time/datatime to timestamp(long)
         if(schema.name() != null && schema.name().contains("io.debezium.time")) {
-            long timezoneOffset = Long.valueOf(config.getInt(JdbcSinkConfig.TIMEZONE_OFFSET));
+            long sourceDataTimezoneHours = ((JdbcSinkConfig) config).sourceDataTimezoneHours;
             switch (schema.name()) {
-                case "io.debezium.time.Timestamp":
+                case "io.debezium.time.ZonedTimestamp":
+                    ZonedDateTime zonedDateTime = ZonedDateTime.parse((String)value, DateTimeFormatter.ISO_DATE_TIME);
                     statement.setTimestamp(
                             index,
-                            new java.sql.Timestamp((long)value - timezoneOffset)
+                            java.sql.Timestamp.from(zonedDateTime.toInstant())
                     );
                     return true;
+                case "io.debezium.time.Timestamp":
                 case "io.debezium.time.MicroTimestamp":
-                    long datetimeRemove3Precision = ((long)value) / 1000;
+                    Instant instant = Instant.ofEpochMilli((long)value);
+                    Instant instantAtUTC = instant.minus(sourceDataTimezoneHours, ChronoUnit.HOURS);
                     statement.setTimestamp(
                             index,
-                            new java.sql.Timestamp(datetimeRemove3Precision - timezoneOffset)
+                            java.sql.Timestamp.from(instantAtUTC)
                     );
                     return true;
                 case "io.debezium.time.MicroTime":
-                    long timeRemove3Precision = ((long)value) / 1000;
+                    Instant instantInSourceTimeZone = Instant.ofEpochMilli((long)value);
+                    long instantInUTC = instantInSourceTimeZone.minus(sourceDataTimezoneHours, ChronoUnit.HOURS).toEpochMilli();
                     statement.setTime(
                             index,
-                            new java.sql.Time(timeRemove3Precision - timezoneOffset)
+                            new java.sql.Time(instantInUTC)
                     );
                     return true;
                 case "io.debezium.time.Date":
-                    Long epochToTimestamp = ((int)value) * 86400000L;
+                    LocalDate localDate = LocalDate.ofEpochDay(((Integer)value).longValue());
                     statement.setDate(
                             index,
-                            new java.sql.Date(epochToTimestamp)
+                            java.sql.Date.valueOf(localDate)
                     );
                     return true;
                 default:
