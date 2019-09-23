@@ -35,6 +35,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A {@link DatabaseDialect} for Debezium to MySql.
@@ -213,5 +215,28 @@ public class DebeziumMySqlDialect extends GenericDatabaseDialect {
         return super.sanitizedUrl(url)
                 .replaceAll("(?i)([(,]password=)[^,)]*", "$1****")
                 .replaceAll("(://[^:]*:)([^@]*)@", "$1****@");
+    }
+
+    @Override
+    protected Set<ColumnId> primaryKeyColumns(
+            Connection connection,
+            String catalogPattern,
+            String schemaPattern,
+            String tablePattern
+    ) throws SQLException {
+        final Set<ColumnId> pkColumns = new HashSet<>();
+        //here use schemaPattern as catalogPattern to fix mysql connector/j 8.0+ issue because it will threw issue if dont give catalogPattern
+        try (ResultSet rs = connection.getMetaData().getPrimaryKeys(schemaPattern, schemaPattern, tablePattern)) {
+            while (rs.next()) {
+                String catalogName = rs.getString(1);
+                String schemaName = rs.getString(2);
+                String tableName = rs.getString(3);
+                TableId tableId = new TableId(catalogName, schemaName, tableName);
+                final String colName = rs.getString(4);
+                ColumnId columnId = new ColumnId(tableId, colName);
+                pkColumns.add(columnId);
+            }
+        }
+        return pkColumns;
     }
 }
