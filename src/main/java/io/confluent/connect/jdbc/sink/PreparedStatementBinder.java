@@ -15,6 +15,7 @@
 
 package io.confluent.connect.jdbc.sink;
 
+import io.confluent.connect.jdbc.debezium.DebeziumHeaderHelper;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -67,18 +68,20 @@ public class PreparedStatementBinder implements StatementBinder {
     //             the relevant SQL has placeholders for nonKeyFieldNames first followed by
     //             keyFieldNames, in iteration order for all UPDATE queries
 
+    //this will get operation from record header , the record must generate by debezium
+    final String operation = DebeziumHeaderHelper.getHeaderOperation(record);
     int index = 1;
     if (isDelete) {
       bindKeyFields(record, index);
     } else {
-      switch (insertMode) {
-        case INSERT:
-        case UPSERT:
+      switch (operation) {
+        case "c":
+        case "":
           index = bindKeyFields(record, index);
           bindNonKeyFields(record, valueStruct, index);
           break;
 
-        case UPDATE:
+        case "u":
           index = bindNonKeyFields(record, valueStruct, index);
           bindKeyFields(record, index);
           break;
