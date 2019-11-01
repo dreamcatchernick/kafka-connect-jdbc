@@ -15,7 +15,10 @@
 
 package io.confluent.connect.jdbc.sink;
 
-import io.confluent.connect.jdbc.debezium.DebeziumHeaderHelper;
+import io.confluent.connect.jdbc.dialect.DatabaseDialect;
+import io.confluent.connect.jdbc.dialect.DatabaseDialect.StatementBinder;
+import io.confluent.connect.jdbc.sink.metadata.FieldsMetadata;
+import io.confluent.connect.jdbc.sink.metadata.SchemaPair;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -24,11 +27,6 @@ import org.apache.kafka.connect.sink.SinkRecord;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-
-import io.confluent.connect.jdbc.dialect.DatabaseDialect;
-import io.confluent.connect.jdbc.dialect.DatabaseDialect.StatementBinder;
-import io.confluent.connect.jdbc.sink.metadata.FieldsMetadata;
-import io.confluent.connect.jdbc.sink.metadata.SchemaPair;
 
 import static java.util.Objects.isNull;
 
@@ -68,20 +66,18 @@ public class PreparedStatementBinder implements StatementBinder {
     //             the relevant SQL has placeholders for nonKeyFieldNames first followed by
     //             keyFieldNames, in iteration order for all UPDATE queries
 
-    //this will get operation from record header , the record must generate by debezium
-    final String operation = DebeziumHeaderHelper.getHeaderOperation(record);
     int index = 1;
     if (isDelete) {
       bindKeyFields(record, index);
     } else {
-      switch (operation) {
-        case "c":
-        case "":
+      switch (insertMode) {
+        case INSERT:
+        case UPSERT:
           index = bindKeyFields(record, index);
           bindNonKeyFields(record, valueStruct, index);
           break;
 
-        case "u":
+        case UPDATE:
           index = bindNonKeyFields(record, valueStruct, index);
           bindKeyFields(record, index);
           break;
