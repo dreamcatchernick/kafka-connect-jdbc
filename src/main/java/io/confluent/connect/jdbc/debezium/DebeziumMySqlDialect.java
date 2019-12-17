@@ -26,11 +26,11 @@ import io.confluent.connect.jdbc.util.IdentifierRules;
 import io.confluent.connect.jdbc.util.TableId;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.*;
+import org.apache.kafka.connect.data.Date;
+import org.apache.kafka.connect.data.Time;
+import org.apache.kafka.connect.data.Timestamp;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -38,6 +38,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -240,5 +241,11 @@ public class DebeziumMySqlDialect extends GenericDatabaseDialect {
             }
         }
         return pkColumns;
+    }
+
+    @Override
+    public void applyDdlStatements(Connection connection, List<String> statements) throws SQLException {
+        //DO Nothing because we don't want to kafka jdbc connector to update ddl on target database table
+        log.info("i will not execute ddl statement this will be taken care of by ddl sink connector.");
     }
 }
