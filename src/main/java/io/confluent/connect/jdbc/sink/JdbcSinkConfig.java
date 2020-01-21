@@ -219,6 +219,17 @@ public class JdbcSinkConfig extends AbstractConfig {
   private static final EnumRecommender QUOTE_METHOD_RECOMMENDER =
       EnumRecommender.in(QuoteMethod.values());
 
+
+  public static final String SOURCEDATA_TIMEZONE_HOURS_CONFIG = "sourcedata.timezone.hours";
+  private static final String SOURCEDATA_TIMEZONE_HOURS_DISPLAY = "source data timezone in hours";
+  public static final String SOURCEDATA_TIMEZONE_HOURS_DEFAULT = "0";
+  private static final String SOURCEDATA_TIMEZONE_HOURS_DOC = "Store the timezone offset to correct the debziume datetime issue, becasue debziume always treat the datetime as UTC";
+
+  public static final String TOPIC_TABLE_MAPPING = "topic.table.mapping";
+  private static final String TOPIC_TABLE_MAPPING_DISPLAY = "Topic to table mapping";
+  public static final String TOPIC_TABLE_MAPPING_DEFAULT = "";
+  private static final String TOPIC_TABLE_MAPPING_DOC = "Sink job topic name to table name mapping eg.(sink topic abc to table bcd)";
+
   public static final ConfigDef CONFIG_DEF = new ConfigDef()
         // Connection
         .define(
@@ -415,6 +426,28 @@ public class JdbcSinkConfig extends AbstractConfig {
             2,
             ConfigDef.Width.SHORT,
             RETRY_BACKOFF_MS_DISPLAY
+        )
+        .define(
+            SOURCEDATA_TIMEZONE_HOURS_CONFIG,
+            ConfigDef.Type.INT,
+            SOURCEDATA_TIMEZONE_HOURS_DEFAULT,
+            ConfigDef.Importance.HIGH,
+            SOURCEDATA_TIMEZONE_HOURS_DOC,
+            DDL_GROUP,
+              4,
+            ConfigDef.Width.SHORT,
+            SOURCEDATA_TIMEZONE_HOURS_DISPLAY
+        )
+        .define(
+            TOPIC_TABLE_MAPPING,
+            ConfigDef.Type.LIST,
+            TOPIC_TABLE_MAPPING_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            TOPIC_TABLE_MAPPING_DOC,
+            DATAMAPPING_GROUP,
+            4,
+            ConfigDef.Width.LONG,
+            TOPIC_TABLE_MAPPING_DISPLAY
         );
 
   public final String connectionUrl;
@@ -433,6 +466,8 @@ public class JdbcSinkConfig extends AbstractConfig {
   public final Set<String> fieldsWhitelist;
   public final String dialectName;
   public final TimeZone timeZone;
+  public final long sourceDataTimezoneHours;
+  public final List<String> topicTableMapping;
 
   public JdbcSinkConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
@@ -458,6 +493,8 @@ public class JdbcSinkConfig extends AbstractConfig {
       throw new ConfigException(
           "Primary key mode must be 'record_key' when delete support is enabled");
     }
+    sourceDataTimezoneHours = (long)getInt(SOURCEDATA_TIMEZONE_HOURS_CONFIG);
+    topicTableMapping = getList(TOPIC_TABLE_MAPPING);
   }
 
   private String getPasswordValue(String key) {

@@ -15,6 +15,10 @@
 
 package io.confluent.connect.jdbc.sink;
 
+import io.confluent.connect.jdbc.dialect.DatabaseDialect;
+import io.confluent.connect.jdbc.dialect.DatabaseDialect.StatementBinder;
+import io.confluent.connect.jdbc.sink.metadata.FieldsMetadata;
+import io.confluent.connect.jdbc.sink.metadata.SchemaPair;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -23,11 +27,6 @@ import org.apache.kafka.connect.sink.SinkRecord;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-
-import io.confluent.connect.jdbc.dialect.DatabaseDialect;
-import io.confluent.connect.jdbc.dialect.DatabaseDialect.StatementBinder;
-import io.confluent.connect.jdbc.sink.metadata.FieldsMetadata;
-import io.confluent.connect.jdbc.sink.metadata.SchemaPair;
 
 import static java.util.Objects.isNull;
 

@@ -80,7 +80,15 @@ public class JdbcDbWriter {
   }
 
   TableId destinationTable(String topic) {
-    final String tableName = config.tableNameFormat.replace("${topic}", topic);
+    //hack code! remove the catalog and schema
+    String newTopicName = this.stripOutCatalogAndSchema(topic);
+
+    String tableName = config.tableNameFormat.replace("${topic}", newTopicName);
+    if(this.config.topicTableMapping.size() > 0) {
+      String mapping = this.config.topicTableMapping.stream().filter(m -> m.contains(topic)).findFirst().get();
+      String mappedTableName = mapping.split("->")[1];
+      tableName = mappedTableName;
+    }
     if (tableName.isEmpty()) {
       throw new ConnectException(String.format(
           "Destination table name for topic '%s' is empty using the format string '%s'",
@@ -89,5 +97,13 @@ public class JdbcDbWriter {
       ));
     }
     return dbDialect.parseTableIdentifier(tableName);
+  }
+
+  private String stripOutCatalogAndSchema(String topic) {
+    String[] parts = topic.split("\\.");
+    if (parts.length > 1) {
+      topic = parts[parts.length - 1];
+    }
+    return topic;
   }
 }

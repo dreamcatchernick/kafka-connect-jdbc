@@ -15,6 +15,12 @@
 
 package io.confluent.connect.jdbc.sink;
 
+import io.confluent.connect.jdbc.dialect.DatabaseDialect;
+import io.confluent.connect.jdbc.dialect.DatabaseDialect.StatementBinder;
+import io.confluent.connect.jdbc.sink.metadata.FieldsMetadata;
+import io.confluent.connect.jdbc.sink.metadata.SchemaPair;
+import io.confluent.connect.jdbc.util.ColumnId;
+import io.confluent.connect.jdbc.util.TableId;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -25,19 +31,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
-
-import io.confluent.connect.jdbc.dialect.DatabaseDialect;
-import io.confluent.connect.jdbc.dialect.DatabaseDialect.StatementBinder;
-import io.confluent.connect.jdbc.sink.metadata.FieldsMetadata;
-import io.confluent.connect.jdbc.sink.metadata.SchemaPair;
-import io.confluent.connect.jdbc.util.ColumnId;
-import io.confluent.connect.jdbc.util.TableId;
 
 import static io.confluent.connect.jdbc.sink.JdbcSinkConfig.InsertMode.INSERT;
 import static java.util.Objects.isNull;
@@ -262,33 +257,33 @@ public class BufferedRecords {
             asColumns(fieldsMetadata.keyFieldNames),
             asColumns(fieldsMetadata.nonKeyFieldNames)
         );
-      case UPSERT:
-        if (fieldsMetadata.keyFieldNames.isEmpty()) {
-          throw new ConnectException(String.format(
-              "Write to table '%s' in UPSERT mode requires key field names to be known, check the"
-                  + " primary key configuration",
-              tableId
-          ));
-        }
-        try {
-          return dbDialect.buildUpsertQueryStatement(
-              tableId,
-              asColumns(fieldsMetadata.keyFieldNames),
-              asColumns(fieldsMetadata.nonKeyFieldNames)
-          );
-        } catch (UnsupportedOperationException e) {
-          throw new ConnectException(String.format(
-              "Write to table '%s' in UPSERT mode is not supported with the %s dialect.",
-              tableId,
-              dbDialect.name()
-          ));
-        }
       case UPDATE:
         return dbDialect.buildUpdateStatement(
             tableId,
             asColumns(fieldsMetadata.keyFieldNames),
             asColumns(fieldsMetadata.nonKeyFieldNames)
         );
+      case UPSERT:
+        if (fieldsMetadata.keyFieldNames.isEmpty()) {
+          throw new ConnectException(String.format(
+                  "Write to table '%s' in UPSERT mode requires key field names to be known, check the"
+                          + " primary key configuration",
+                  tableId
+          ));
+        }
+        try {
+          return dbDialect.buildUpsertQueryStatement(
+                  tableId,
+                  asColumns(fieldsMetadata.keyFieldNames),
+                  asColumns(fieldsMetadata.nonKeyFieldNames)
+          );
+        } catch (UnsupportedOperationException e) {
+          throw new ConnectException(String.format(
+                  "Write to table '%s' in UPSERT mode is not supported with the %s dialect.",
+                  tableId,
+                  dbDialect.name()
+          ));
+        }
       default:
         throw new ConnectException("Invalid insert mode");
     }
