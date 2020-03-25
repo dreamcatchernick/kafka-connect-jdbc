@@ -15,6 +15,7 @@
 
 package io.confluent.connect.jdbc.sink;
 
+import java.io.IOException;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,6 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.confluent.connect.jdbc.sink.metadata.FieldMapping;
 import io.confluent.connect.jdbc.source.JdbcSourceConnectorConfig;
 
 import io.confluent.connect.jdbc.util.DatabaseDialectRecommender;
@@ -38,6 +41,8 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.types.Password;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JdbcSinkConfig extends AbstractConfig {
 
@@ -229,6 +234,11 @@ public class JdbcSinkConfig extends AbstractConfig {
   private static final String TOPIC_TABLE_MAPPING_DISPLAY = "Topic to table mapping";
   public static final String TOPIC_TABLE_MAPPING_DEFAULT = "";
   private static final String TOPIC_TABLE_MAPPING_DOC = "Sink job topic name to table name mapping eg.(sink topic abc to table bcd)";
+
+  public static final String TOPIC_FIELD_MAPPING = "topic.field.mapping";
+  private static final String TOPIC_FIELD_MAPPING_DISPLAY = "mapping field to target database column";
+  public static final String TOPIC_FIELD_MAPPING_DEFAULT = "[]";
+  private static final String TOPIC_FIELD_MAPPING_DOC = "mapping field to target database column";
 
   public static final ConfigDef CONFIG_DEF = new ConfigDef()
         // Connection
@@ -448,6 +458,17 @@ public class JdbcSinkConfig extends AbstractConfig {
             4,
             ConfigDef.Width.LONG,
             TOPIC_TABLE_MAPPING_DISPLAY
+        )
+        .define(
+            TOPIC_FIELD_MAPPING,
+            ConfigDef.Type.STRING,
+            TOPIC_FIELD_MAPPING_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            TOPIC_FIELD_MAPPING_DOC,
+            DATAMAPPING_GROUP,
+            4,
+            ConfigDef.Width.LONG,
+            TOPIC_FIELD_MAPPING_DISPLAY
         );
 
   public final String connectionUrl;
@@ -468,6 +489,7 @@ public class JdbcSinkConfig extends AbstractConfig {
   public final TimeZone timeZone;
   public final long sourceDataTimezoneHours;
   public final List<String> topicTableMapping;
+  public final List<FieldMapping> topicFieldMapping;
 
   public JdbcSinkConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
@@ -495,6 +517,15 @@ public class JdbcSinkConfig extends AbstractConfig {
     }
     sourceDataTimezoneHours = (long)getInt(SOURCEDATA_TIMEZONE_HOURS_CONFIG);
     topicTableMapping = getList(TOPIC_TABLE_MAPPING);
+
+    try {
+      String json = getString(TOPIC_FIELD_MAPPING);
+      topicFieldMapping = getTopicFieldMapping(json);
+    } catch (IOException e) {
+      throw new ConfigException(
+              "topic.field.mapping has incorrect data format please check");
+    }
+
   }
 
   private String getPasswordValue(String key) {
@@ -503,6 +534,11 @@ public class JdbcSinkConfig extends AbstractConfig {
       return password.value();
     }
     return null;
+  }
+
+  private List<FieldMapping> getTopicFieldMapping(String context) throws IOException {
+    ObjectMapper mapper = new ObjectMapper();
+    return mapper.readValue(context, new TypeReference<List<FieldMapping>>(){});
   }
 
   private static class EnumValidator implements ConfigDef.Validator {

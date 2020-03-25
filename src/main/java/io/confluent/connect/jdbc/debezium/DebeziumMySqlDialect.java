@@ -26,11 +26,11 @@ import io.confluent.connect.jdbc.util.IdentifierRules;
 import io.confluent.connect.jdbc.util.TableId;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.*;
-import org.apache.kafka.connect.data.Date;
-import org.apache.kafka.connect.data.Time;
-import org.apache.kafka.connect.data.Timestamp;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -137,9 +137,9 @@ public class DebeziumMySqlDialect extends GenericDatabaseDialect {
     ) {
         //MySql doesn't support SQL 2003:merge so here how the upsert is handled
         final Transform<ColumnId> transform = (builder, col) -> {
-            builder.appendColumnName(col.name());
+            builder.appendColumnName(col.aliasOrName());
             builder.append("=values(");
-            builder.appendColumnName(col.name());
+            builder.appendColumnName(col.aliasOrName());
             builder.append(")");
         };
 
@@ -149,7 +149,7 @@ public class DebeziumMySqlDialect extends GenericDatabaseDialect {
         builder.append("(");
         builder.appendList()
                 .delimitedBy(",")
-                .transformedBy(ExpressionBuilder.columnNames())
+                .transformedBy(ExpressionBuilder.columnAlias())
                 .of(keyColumns, nonKeyColumns);
         builder.append(") values(");
         builder.appendMultiple(",", "?", keyColumns.size() + nonKeyColumns.size());

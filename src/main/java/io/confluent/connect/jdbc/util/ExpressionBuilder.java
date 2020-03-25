@@ -191,6 +191,15 @@ public class ExpressionBuilder {
   }
 
   /**
+   * Get a {@link Transform} that will quote just the alias.
+   *
+   * @return the transform; never null
+   */
+  public static Transform<ColumnId> columnAlias() {
+    return (builder, input) -> builder.appendColumnName(input.aliasOrName());
+  }
+
+  /**
    * Get a {@link Transform} that will quote just the column names and append the given string.
    *
    * @param appended the string to append after the quoted column names

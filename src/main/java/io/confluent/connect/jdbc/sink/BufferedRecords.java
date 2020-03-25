@@ -17,6 +17,7 @@ package io.confluent.connect.jdbc.sink;
 
 import io.confluent.connect.jdbc.dialect.DatabaseDialect;
 import io.confluent.connect.jdbc.dialect.DatabaseDialect.StatementBinder;
+import io.confluent.connect.jdbc.sink.metadata.FieldMapping;
 import io.confluent.connect.jdbc.sink.metadata.FieldsMetadata;
 import io.confluent.connect.jdbc.sink.metadata.SchemaPair;
 import io.confluent.connect.jdbc.util.ColumnId;
@@ -319,8 +320,38 @@ public class BufferedRecords {
   }
 
   private Collection<ColumnId> asColumns(Collection<String> names) {
-    return names.stream()
-        .map(name -> new ColumnId(tableId, name))
-        .collect(Collectors.toList());
+    if(config.topicFieldMapping.size() > 0 && anyTopicFieldMappingMatched()) {
+      Optional<FieldMapping> fieldMapping = config.topicFieldMapping.stream()
+              .filter(tfm -> tfm.getTableName().contains(tableId.tableName()))
+              .findAny();
+      return names.stream()
+              .map(name -> {
+                String alias = getAlias(name , fieldMapping);
+                return new ColumnId(tableId, name , alias);
+              })
+              .collect(Collectors.toList());
+    } else {
+      return names.stream()
+              .map(name -> new ColumnId(tableId, name))
+              .collect(Collectors.toList());
+    }
+  }
+
+  //find any topic field mapping has the same table name with tableid.tablename
+  //it means we need get the alias
+  private boolean anyTopicFieldMappingMatched() {
+    return config.topicFieldMapping.stream()
+            .anyMatch(tfm -> tfm.getTableName().contains(tableId.tableName()));
+  }
+
+  private String getAlias(String columnName , Optional<FieldMapping> fieldMapping) {
+    if(fieldMapping.isPresent()) {
+      Map<String, String> mappingDetail = fieldMapping.get().getMappingDetail();
+      //source field name is the key, target mapping field name is the value
+      //later we are using alias as the target field name to archive the field mapping feature
+      return mappingDetail.get(columnName);
+    } else {
+      return columnName;
+    }
   }
 }
